@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chorus</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+  :root { --bg:#0f0f12; --card:#1a1a20; --fg:#eee; --muted:#999; --accent:#ffff64; }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px; }
+  h1 { margin: 0 0 20px; font-size: 1.6rem; }
+  form { display:flex; gap:8px; }
+  input { flex:1; padding:12px 14px; border-radius:8px; border:1px solid #333; background:var(--card); color:var(--fg); font-size:1rem; }
+  button { padding:12px 18px; border:0; border-radius:8px; background:var(--accent); color:#000; font-weight:600; cursor:pointer; }
+  #status { color:var(--muted); margin:16px 0; min-height:1.2em; }
+  .hit { display:flex; align-items:center; gap:12px; width:100%; padding:8px; margin-bottom:6px; background:var(--card); color:var(--fg); text-align:left; font-weight:400; }
+  .hit img { width:48px; height:48px; border-radius:4px; }
+  .hit small { color:var(--muted); display:block; }
+  .head { display:flex; gap:16px; align-items:center; margin-bottom:16px; }
+  .head img { width:120px; height:120px; border-radius:8px; }
+  .links { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .links a { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:20px; background:var(--card); color:var(--fg); text-decoration:none; text-transform:capitalize; border:1px solid #333; }
+  .links a:hover { border-color:var(--accent); }
+  .links img { width:20px; height:20px; }
+  .loading { display:flex; align-items:center; gap:10px; color:var(--muted); }
+  .loading::before { content:''; width:18px; height:18px; border:2px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .loading::before { animation-duration:2s; } }
+  .lyrics { background:var(--card); padding:28px 24px; border-radius:12px; font-size:1.1rem; line-height:1.75; }
+  .lyrics .sec { color:var(--accent); font-size:.8rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin:28px 0 6px; }
+  .lyrics .sec:first-child { margin-top:0; }
+  .lyrics p { margin:0 0 18px; }
+  h1 { display:flex; align-items:center; gap:10px; }
+  h1 img { width:36px; height:36px; }
+  h1 small { font-size:.9rem; font-weight:400; color:var(--muted); }
+  .langs { position:relative; display:inline-block; margin-bottom:12px; }
+  .langs summary { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--card); border:1px solid #333; border-radius:8px; cursor:pointer; list-style:none; text-transform:capitalize; }
+  .langs summary::-webkit-details-marker { display:none; }
+  .langs summary::after { content:'▾'; color:var(--muted); margin-left:4px; }
+  .langs[open] summary { border-color:var(--accent); }
+  .langs .menu { position:absolute; z-index:10; top:calc(100% + 4px); left:0; min-width:100%; max-height:300px; overflow-y:auto; background:var(--card); border:1px solid #333; border-radius:8px; padding:4px; }
+  .langs .menu button { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; background:none; color:var(--fg); font-weight:400; text-align:left; text-transform:capitalize; white-space:nowrap; }
+  .langs .menu button:hover, .langs .menu button[aria-pressed="true"] { background:#26262e; color:var(--accent); }
+  .langs img { width:20px; height:14px; border-radius:2px; object-fit:cover; }
+  .langs small { color:var(--muted); text-transform:none; }
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:0 32px; font-size:1rem; }
+  .duo .tr { color:#c8c8d0; border-left:2px solid #2c2c34; padding-left:16px; }
+  .duo .sec { margin-top:20px; }
+  @media (max-width: 640px) { .duo { grid-template-columns:1fr; } .duo .tr { margin-bottom:8px; } }
+  .about { background:var(--card); border-radius:12px; padding:16px 20px; margin-bottom:20px; }
+  .about dl { display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; margin:0; }
+  .about dt { color:var(--muted); }
+  .about dd { margin:0; }
+  .about details { margin-top:12px; }
+  .about summary { cursor:pointer; color:var(--accent); }
+  .about details p { line-height:1.6; color:#c8c8d0; }
+  #reader { --fs:1; position:relative; }
+  .chord { cursor:help; border-radius:3px; }
+  .chord:hover { background:#33331a; }
+  .chord-tip { position:absolute; z-index:20; display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 12px; background:#24242c; border:1px solid #3a3a44; border-radius:10px; box-shadow:0 8px 24px #0008; pointer-events:none; }
+  .chord-tip strong { color:var(--accent); font-size:1rem; }
+  .chord-tip small { color:var(--muted); font-size:.75rem; }
+  .chord-tip svg line { stroke:#9a9aa6; stroke-width:1.2; }
+  .chord-tip svg .dot { fill:var(--accent); }
+  .chord-tip svg .open { fill:none; stroke:#ddd; stroke-width:1.5; }
+  .chord-tip svg text { font:600 10px system-ui, sans-serif; text-anchor:middle; fill:#ddd; }
+  .chord-tip svg .finger { fill:#000; }
+  .chord-tip svg .fr { text-anchor:start; fill:var(--muted); }
+  .more-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px; }
+  .more-grid .hit { margin:0; }
+  #more { margin-top:32px; }
+  .lyrics { font-size:calc(1.1rem * var(--fs)); }
+  .duo { font-size:calc(1rem * var(--fs)); }
+  .toolbar { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; margin:24px 0 12px; }
+  .toolbar .langs { margin:0; }
+  .tabs, .tools { display:flex; gap:4px; }
+  .tools { margin-left:auto; }
+  /* botões da barra e o dropdown de tradução com a mesma altura e fonte */
+  .toolbar button:not(.menu button), .toolbar .langs summary { display:flex; align-items:center; gap:8px; height:42px; padding:0 14px; font-size:.95rem; border-radius:8px; }
+  .toolbar button:not(.menu button) { background:var(--card); color:var(--fg); border:1px solid #333; font-weight:500; }
+  .toolbar button:not(.menu button):hover { border-color:#555; }
+  .tabs svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .toolbar button[aria-pressed="true"]:not(.menu button) { border-color:var(--accent); color:var(--accent); }
+  .chords { background:var(--card); padding:24px; border-radius:12px; overflow-x:auto; }
+  .chords pre { margin:0; font-family:ui-monospace, Consolas, monospace; font-size:calc(.95rem * var(--fs)); line-height:1.5; }
+  .chord { color:var(--accent); }
+  .source { color:var(--muted); font-size:.85rem; }
+  .source a { color:var(--muted); }
+  #reader:fullscreen { background:var(--bg); overflow-y:auto; padding:24px max(16px, calc((100vw - 900px) / 2)); }
+  #reader:fullscreen .lyrics, #reader:fullscreen .chords { background:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1><img src="/icon.svg" alt="">Chorus</h1>
+  <form id="f">
+    <input id="q" placeholder="Nome da música (ex: Evidências)" aria-label="Nome da música" required maxlength="200">
+    <button>Buscar</button>
+  </form>
+  <div id="status" role="status"></div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const loading = (text) => `<span class="loading">${text}</span>`;
+const ICON =(provider) => `https://cdn.simpleicons.org/${provider.replace(/\s/g, '')}`;
+
+// idioma do Genius -> país da bandeira (Windows não renderiza emoji de bandeira, então usa imagem)
+const FLAG = { en:'us', pt:'br', es:'es', fr:'fr', de:'de', it:'it', tr:'tr', th:'th', fa:'ir', pl:'pl', ru:'ru', be:'by',
+  cs:'cz', ja:'jp', ko:'kr', zh:'cn', ar:'sa', he:'il', uk:'ua', nl:'nl', sv:'se', el:'gr', hi:'in', id:'id', ro:'ro',
+  hu:'hu', da:'dk', fi:'fi', no:'no', vi:'vn', sr:'rs', hr:'hr', bg:'bg', sk:'sk', az:'az', ka:'ge', ms:'my', tl:'ph',
+  iw:'il', et:'ee', sq:'al', mk:'mk', ca:'es-ct', bs:'ba', kk:'kz', lt:'lt', lv:'lv', sl:'si', is:'is', ga:'ie' };
+const langName = (code) => { try { return new Intl.DisplayNames(['pt-BR'], { type: 'language' }).of(code); } catch { return code; } };
+const langLabel = (code, original) =>
+  `${FLAG[code] ? `<img src="https://flagcdn.com/w40/${FLAG[code]}.png" alt="">` : '🌐'}${esc(langName(code))}${original ? ' <small>(original)</small>' : ''}`;
+const langButton = (id, code, original) =>
+  `<button type="button" data-lyrics="${id}" aria-pressed="${original}">${langLabel(code, original)}</button>`;
+
+// fecha o dropdown ao clicar fora dele
+document.addEventListener('click', (e) => document.querySelectorAll('.langs[open]').forEach((d) => d.contains(e.target) || d.removeAttribute('open')));
+
+// [Verso 1] vira título de seção, linhas em branco separam estrofes; descarta o cabeçalho "[Letra de ...]" / "[... Lyrics]"
+function lyricBlocks(text) {
+  if (!text) return ['<p>Letra não disponível no Genius.</p>'];
+  const lines = text.split('\n');
+  if (/^\[(.*["“«„].*|.*lyrics)\]$/i.test(lines[0])) lines.shift();
+  const blocks = [];
+  let stanza = [];
+  const flush = () => { if (stanza.length) blocks.push(`<p>${stanza.join('<br>')}</p>`); stanza = []; };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) flush();
+    else if (/^\[.*\]$/.test(line)) { flush(); blocks.push(`<div class="sec">${esc(line.slice(1, -1))}</div>`); }
+    else stanza.push(esc(line));
+  }
+  flush();
+  return blocks;
+}
+const renderLyrics = (text) => lyricBlocks(text).join('');
+
+// original | tradução. Com o mesmo nº de blocos, intercala na grid e cada estrofe fica alinhada com a sua tradução
+function renderSideBySide(original, translation) {
+  const a = lyricBlocks(original), b = lyricBlocks(translation);
+  const cells = a.length === b.length
+    ? a.map((x, i) => `<div>${x}</div><div class="tr">${b[i]}</div>`).join('')
+    : `<div>${a.join('')}</div><div class="tr">${b.join('')}</div>`;
+  return `<div class="duo">${cells}</div>`;
+}
+
+const fmtDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+function renderAbout(s) {
+  const rows = [
+    s.releaseDate && ['Lançamento', fmtDate(s.releaseDate)],
+    s.writers.length && ['Compositores', s.writers.join(', ')],
+    s.producers.length && ['Produtores', s.producers.join(', ')],
+  ].filter(Boolean);
+  if (!rows.length && !s.description) return '';
+  return `<h3>Sobre a música</h3><div class="about">
+    ${rows.length ? `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+    ${s.description ? `<details><summary>Ler descrição</summary><p>${esc(s.description).replace(/\n+/g, '</p><p>')}</p></details>` : ''}
+  </div>`;
+}
+
+async function api(path) {
+  const r = await fetch(path);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || 'Erro');
+  return data;
+}
+
+let searchSeq = 0, typingTimer;
+
+async function doSearch(q) {
+  const seq = ++searchSeq; // ignora respostas de buscas antigas que chegarem depois
+  $('status').innerHTML = loading('Buscando músicas...');
+  $('out').innerHTML = '';
+  try {
+    const hits = await api('/api/search?q=' + encodeURIComponent(q));
+    if (seq !== searchSeq) return;
+    if (!hits.length) return ($('status').textContent = 'Nada encontrado.');
+    $('status').textContent = 'Escolha a música:';
+    $('out').innerHTML = hits.map(hitButton).join('');
+  } catch (err) { if (seq === searchSeq) $('status').textContent = err.message; }
+}
+
+$('f').onsubmit = (e) => { e.preventDefault(); clearTimeout(typingTimer); doSearch($('q').value.trim()); };
+$('q').oninput = () => {
+  clearTimeout(typingTimer);
+  const q = $('q').value.trim();
+  if (q.length >= 2) typingTimer = setTimeout(() => doSearch(q), 500);
+};
+
+const lyricsCache = {};
+let originalId, currentSong, chordsLoaded;
+
+// tamanho da fonte do leitor (letra e cifra), lembrado entre visitas
+let fontScale = 1;
+try { fontScale = Number(localStorage.getItem('fontScale')) || 1; } catch {}
+const applyFont = () => $('reader')?.style.setProperty('--fs', fontScale);
+
+const renderChords = (text) => esc(text).replace(/(.*?)/g, '<b class="chord">$1</b>');
+
+// ---- diagramas de acorde (banco aberto chords-db, carregado só quando abre a aba Cifra) ----
+let chordDb;
+const loadChordDb = () => (chordDb ??= fetch('https://cdn.jsdelivr.net/npm/@tombatossals/chords-db@0.5.1/lib/guitar.json')
+  .then((r) => r.json()).catch(() => (chordDb = undefined)));
+const DB_KEY = { C:'C', 'C#':'Csharp', Db:'Csharp', D:'D', 'D#':'Eb', Eb:'Eb', E:'E', Fb:'E', 'E#':'F', F:'F', 'F#':'Fsharp',
+  Gb:'Fsharp', G:'G', 'G#':'Ab', Ab:'Ab', A:'A', 'A#':'Bb', Bb:'Bb', B:'B', Cb:'B', 'B#':'C' };
+const BASS = { 'C#':'C#', Db:'C#', 'D#':'D#', Eb:'D#', 'F#':'F#', Gb:'F#', 'G#':'G#', Ab:'G#', 'A#':'Bb', Bb:'Bb' };
+// notação de cifra brasileira (sem parênteses) -> sufixo do chords-db
+const SUFFIX = { '':'major', m:'minor', '7':'7', m7:'m7', '7M':'maj7', maj7:'maj7', '7+':'maj7', m7M:'mmaj7', '°':'dim', 'º':'dim',
+  dim:'dim', '°7':'dim7', 'º7':'dim7', dim7:'dim7', '+':'aug', '5+':'aug', aug:'aug', m7b5:'m7b5', 'ø':'m7b5', '6':'6', m6:'m6',
+  '9':'add9', add9:'add9', m9:'madd9', madd9:'madd9', '79':'9', m79:'m9', '7M9':'maj9', sus4:'sus4', '4':'sus4', sus2:'sus2',
+  '2':'sus2', '74':'7sus4', '7sus4':'7sus4', '13':'13', '713':'13', '11':'11', '711':'11', m711:'m11', m11:'m11', '7b9':'7b9',
+  '7#9':'7#9', '69':'69', '6/9':'69', '7b5':'7b5', '75-':'7b5', 'm75-':'m7b5' };
+
+// devolve { name, pos, approx } ou null. Sem formato exato, cai para o acorde sem baixo e depois para a tríade
+function findChord(db, name) {
+  const m = name.match(/^([A-G][#b]?)(.*)$/);
+  if (!m || !db) return null;
+  const [, root, rest] = m;
+  const bassM = rest.match(/\/([A-G][#b]?)$/);
+  const raw = (bassM ? rest.slice(0, bassM.index) : rest).replace(/[()]/g, '');
+  const suffix = SUFFIX[raw];
+  const list = db.chords[DB_KEY[root]] || [];
+  const get = (suf) => list.find((c) => c.suffix === suf);
+  const minor = /^m(?!aj)/.test(raw);
+  const tries = [
+    bassM && (suffix === 'major' || suffix === 'minor') && [`${minor ? 'm' : ''}/${BASS[bassM[1]] || bassM[1]}`, name],
+    suffix && [suffix, bassM ? root + rest.slice(0, bassM.index) : name],
+    [minor ? 'minor' : 'major', root + (minor ? 'm' : '')],
+  ].filter(Boolean);
+  for (const [suf, label] of tries) {
+    const c = get(suf);
+    if (c) return { name: label, pos: c.positions[0], approx: label !== name };
+  }
+  return null;
+}
+
+function chordSvg({ frets, fingers = [], baseFret, barres = [] }) {
+  const x = (s) => 16 + s * 14, y = (f) => 24 + f * 18;
+  let g = '';
+  for (let s = 0; s < 6; s++) g += `<line x1="${x(s)}" y1="${y(0)}" x2="${x(s)}" y2="${y(5)}" />`;
+  for (let f = 0; f <= 5; f++) g += `<line x1="${x(0)}" y1="${y(f)}" x2="${x(5)}" y2="${y(f)}" ${f === 0 && baseFret === 1 ? 'stroke-width="4"' : ''}/>`;
+  for (const b of barres) {
+    const strings = frets.map((f, i) => (f === b ? i : -1)).filter((i) => i >= 0);
+    if (strings.length) g += `<rect class="dot" x="${x(strings[0]) - 6}" y="${y(b - 0.5) - 6}" width="${x(strings.at(-1)) - x(strings[0]) + 12}" height="12" rx="6"/>`;
+  }
+  frets.forEach((f, s) => {
+    if (f < 0) g += `<text x="${x(s)}" y="16" class="mark">×</text>`;
+    else if (f === 0) g += `<circle cx="${x(s)}" cy="12" r="4" class="open"/>`;
+    else {
+      if (!barres.includes(f)) g += `<circle class="dot" cx="${x(s)}" cy="${y(f - 0.5)}" r="6"/>`;
+      if (fingers[s]) g += `<text x="${x(s)}" y="${y(f - 0.5) + 3.5}" class="finger">${fingers[s]}</text>`;
+    }
+  });
+  if (baseFret > 1) g += `<text x="${x(5) + 10}" y="${y(0.5) + 4}" class="fr">${baseFret}</text>`;
+  return `<svg viewBox="0 0 110 120" width="110" height="120" role="img">${g}</svg>`;
+}
+
+async function showChordTip(el) {
+  const tip = $('chordTip'), reader = $('reader');
+  const found = findChord(await loadChordDb(), el.textContent);
+  tip.innerHTML = found
+    ? `<strong>${esc(found.name)}</strong>${found.approx ? `<small>aprox. de ${esc(el.textContent)}</small>` : ''}${chordSvg(found.pos)}`
+    : `<strong>${esc(el.textContent)}</strong><small>diagrama indisponível</small>`;
+  tip.setAttribute('aria-label', `Diagrama do acorde ${el.textContent}`);
+  const r = el.getBoundingClientRect(), base = reader.getBoundingClientRect();
+  tip.style.top = `${r.bottom - base.top + reader.scrollTop + 6}px`;
+  tip.style.left = `${Math.min(r.left - base.left, base.width - 140)}px`;
+  tip.hidden = false;
+}
+document.addEventListener('pointerover', (e) => {
+  const el = e.target.closest?.('.chord');
+  if (el) showChordTip(el);
+  else if ($('chordTip') && !e.target.closest?.('#chordTip')) $('chordTip').hidden = true;
+});
+
+async function showTab(tab) {
+  document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === tab));
+  $('lyrics').hidden = tab !== 'lyrics';
+  $('chords').hidden = tab !== 'chords';
+  document.querySelector('.langs')?.toggleAttribute('hidden', tab !== 'lyrics');
+  if (tab !== 'chords' || chordsLoaded) return;
+  chordsLoaded = true;
+  loadChordDb();
+  $('chords').innerHTML = loading('Procurando cifra no Cifra Club...');
+  try {
+    const c = await api(`/api/chords?artist=${encodeURIComponent(currentSong.artist)}&title=${encodeURIComponent(currentSong.title)}`);
+    $('chords').innerHTML = c.chords
+      ? `<pre>${renderChords(c.chords)}</pre><p class="source">Cifra: <a href="${esc(c.url)}" target="_blank" rel="noopener">Cifra Club</a></p>`
+      : '<p>Cifra não encontrada no Cifra Club.</p>';
+  } catch (err) { chordsLoaded = false; $('chords').innerHTML = `<p>${esc(err.message)}</p>`; }
+}
+
+const hitButton = (h) => `
+  <button class="hit" data-id="${h.id}">
+    <img src="${esc(h.image)}" alt="">
+    <span>${esc(h.title)}<small>${esc(h.artist)}</small></span>
+  </button>`;
+
+async function loadMore(s, currentId) {
+  try {
+    const songs = (await api(`/api/artist/${s.artistId}/songs`)).filter((x) => x.id !== currentId).slice(0, 10);
+    if (songs.length && $('more')) $('more').innerHTML = `<h3>Mais de ${esc(s.artist)}</h3><div class="more-grid">${songs.map(hitButton).join('')}</div>`;
+  } catch {} // lista extra: se falhar, só não aparece
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.querySelector('[data-read]');
+  if (btn) btn.textContent = document.fullscreenElement ? '✕ Sair da leitura' : '⛶ Modo leitura';
+});
+
+$('out').onclick = async (e) => {
+  const tab = e.target.closest('[data-tab]');
+  if (tab) return showTab(tab.dataset.tab);
+  const font = e.target.closest('[data-font]');
+  if (font) {
+    fontScale = Math.min(2.5, Math.max(0.7, fontScale + Number(font.dataset.font) * 0.15));
+    try { localStorage.setItem('fontScale', fontScale); } catch {}
+    return applyFont();
+  }
+  if (e.target.closest('[data-read]')) {
+    return document.fullscreenElement ? document.exitFullscreen() : $('reader').requestFullscreen();
+  }
+  const lang = e.target.closest('[data-lyrics]');
+  if (lang) {
+    document.querySelectorAll('[data-lyrics]').forEach((b) => b.setAttribute('aria-pressed', b === lang));
+    const dd = lang.closest('.langs');
+    dd.querySelector('summary').innerHTML = lang.innerHTML;
+    dd.removeAttribute('open');
+    const id = lang.dataset.lyrics;
+    $('lyrics').innerHTML = loading('Carregando tradução...');
+    try {
+      lyricsCache[id] ??= (await api('/api/song/' + id)).lyrics;
+      $('lyrics').innerHTML = id === originalId
+        ? renderLyrics(lyricsCache[id])
+        : renderSideBySide(lyricsCache[originalId], lyricsCache[id]);
+    } catch (err) { $('lyrics').innerHTML = `<p>${esc(err.message)}</p>`; }
+    return;
+  }
+  const btn = e.target.closest('.hit');
+  if (!btn) return;
+  $('status').innerHTML = loading('Carregando letra...');
+  try {
+    const s = await api('/api/song/' + btn.dataset.id);
+    originalId = btn.dataset.id;
+    lyricsCache[originalId] = s.lyrics;
+    currentSong = s;
+    chordsLoaded = false;
+    const fromLetras = s.lyricsUrl && !s.lyricsUrl.includes('genius.com');
+    $('status').textContent = '';
+    $('out').innerHTML = `
+      <div class="head">
+        <img src="${esc(s.image)}" alt="">
+        <div><h2>${esc(s.title)}</h2><div>${esc(s.artist)}${s.album ? ' · ' + esc(s.album) : ''}</div></div>
+      </div>
+      <h3>Onde ouvir</h3>
+      <div class="links">${s.links.map((l) =>
+        `<a href="${esc(l.url)}" target="_blank" rel="noopener"><img src="${ICON(l.provider)}" alt="">${esc(l.provider)}</a>`).join('')}
+        <a href="${esc(s.geniusUrl)}" target="_blank" rel="noopener"><img src="${ICON('genius')}" alt="">Genius</a>
+      </div>
+      ${renderAbout(s)}
+      <div id="reader">
+        <div class="toolbar">
+          <div class="tabs" role="group" aria-label="Conteúdo">
+            <button type="button" data-tab="lyrics" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>Letra</button>
+            <button type="button" data-tab="chords" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Cifra</button>
+          </div>
+          ${s.translations.length ? `<details class="langs"><summary>${langLabel(s.language, true)}</summary><div class="menu">${
+            langButton(btn.dataset.id, s.language, true)}${
+            s.translations.map((t) => langButton(t.id, t.language, false)).join('')}</div></details>` : ''}
+          <div class="tools">
+            <button type="button" data-font="-1" aria-label="Diminuir fonte">A−</button>
+            <button type="button" data-font="1" aria-label="Aumentar fonte">A+</button>
+            <button type="button" data-read>⛶ Modo leitura</button>
+          </div>
+        </div>
+        <div class="lyrics" id="lyrics">${renderLyrics(s.lyrics)}</div>
+        <div class="chords" id="chords" hidden></div>
+        <div id="chordTip" class="chord-tip" role="tooltip" hidden></div>
+        ${fromLetras ? `<p class="source">Letra: <a href="${esc(s.lyricsUrl)}" target="_blank" rel="noopener">Letras.mus.br</a> (não estava no Genius)</p>` : ''}
+      </div>
+      <section id="more"></section>`;
+    applyFont();
+    window.scrollTo({ top: 0 });
+    loadMore(s, Number(originalId));
+  } catch (err) { $('status').textContent = err.message; }
+};
+</script>
+</body>
+</html>
